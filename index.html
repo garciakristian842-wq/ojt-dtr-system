@@ -110,6 +110,13 @@
     color:var(--ink-soft);
     margin-top:0.3rem;
   }
+  .id-fields{
+    display:flex;
+    flex-wrap:wrap;
+    gap:1.5rem;
+    min-width:0;
+    max-width:100%;
+  }
   .name-field{
     display:flex;
     flex-direction:column;
@@ -295,6 +302,18 @@
     min-height:1.1em;
   }
 
+  .break-tag{
+    display:inline-block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.62rem;
+    color:var(--gold);
+    border:1px solid rgba(224,169,59,0.5);
+    padding:0 0.3rem;
+    margin-left:0.35rem;
+    white-space:nowrap;
+    vertical-align:middle;
+  }
+
   /* ---- Ledger table ---- */
   .table-scroll{
     width:100%;
@@ -405,6 +424,7 @@
     .wrap{ padding:1.25rem max(1rem, env(safe-area-inset-right,0px)) 0 max(30px, calc(env(safe-area-inset-left,0px) + 26px)); }
     footer.page-foot{ padding:1.2rem 1rem 0 30px; }
     header{ gap:1rem; }
+    .id-fields{ width:100%; gap:1rem; }
     .name-field{ width:100%; flex:1 1 100%; }
     .name-field input{ font-size:16px; padding:0.45rem 0.1rem; }
     .status-row{ margin-bottom:1.5rem; }
@@ -492,17 +512,23 @@
 <div class="wrap">
 
   <div class="brand-strip">
-    <div class="brand-tag">OJT / Practicum Trainee Portal</div>
+    <div class="brand-tag"></div>
   </div>
 
   <header>
     <div class="title-block">
-      <div class="eyebrow"></div>
+      <div class="eyebrow">OJT / Practicum Trainee Portal</div>
       <h1>Daily Time Record</h1>
     </div>
-    <div class="name-field">
-      <label for="traineeName">Name</label>
-      <input type="text" id="traineeName" placeholder="Your full name">
+    <div class="id-fields">
+      <div class="name-field">
+        <label for="traineeName">Name</label>
+        <input type="text" id="traineeName" placeholder="Your full name">
+      </div>
+      <div class="name-field">
+        <label for="companyName">Company</label>
+        <input type="text" id="companyName" placeholder="Company name">
+      </div>
     </div>
   </header>
 
@@ -585,7 +611,7 @@
     </div>
 
     <div class="footer-actions">
-      <div class="hint"> 1 hr break is auto-deducted per shift.</div>
+      <div class="hint"></div>
       <div style="display:flex; gap:1.2rem;">
         <button class="link-btn" id="exportBtn"></button>
         <button class="link-btn" id="clearBtn" style="color:var(--margin-red);">Clear all entries</button>
@@ -605,6 +631,7 @@
   const STORAGE_KEY = 'dtr_entries_v1';
   const TARGET_KEY = 'dtr_target_v1';
   const NAME_KEY = 'dtr_name_v1';
+  const COMPANY_KEY = 'dtr_company_v1';
 
   const els = {
     form: document.getElementById('entryForm'),
@@ -624,6 +651,7 @@
     exportBtn: document.getElementById('exportBtn'),
     clearBtn: document.getElementById('clearBtn'),
     name: document.getElementById('traineeName'),
+    company: document.getElementById('companyName'),
   };
 
   const RING_CIRCUMFERENCE = 2 * Math.PI * 72;
@@ -646,15 +674,22 @@
   save(STORAGE_KEY, entries);
   let target = load(TARGET_KEY, 243);
   let traineeName = load(NAME_KEY, '');
+  let companyName = load(COMPANY_KEY, '');
   let editingId = null;
 
   els.targetInput.value = target;
   els.name.value = traineeName;
+  els.company.value = companyName;
   els.date.value = new Date().toISOString().slice(0,10);
 
   els.name.addEventListener('input', () => {
     traineeName = els.name.value;
     save(NAME_KEY, traineeName);
+  });
+
+  els.company.addEventListener('input', () => {
+    companyName = els.company.value;
+    save(COMPANY_KEY, companyName);
   });
 
   els.targetInput.addEventListener('change', () => {
@@ -680,6 +715,7 @@
   }
 
   function fmt(n){ return n.toFixed(2); }
+
 
   function fmtTime12(t){
     const [h, m] = t.split(':').map(Number);
@@ -817,7 +853,7 @@
             <td data-label="Date"><input type="date" class="edit-input edit-date" value="${en.date}"></td>
             <td data-label="Time In"><input type="time" class="edit-input edit-timein" value="${en.timeIn}"></td>
             <td data-label="Time Out"><input type="time" class="edit-input edit-timeout" value="${en.timeOut}"></td>
-            <td class="mono" data-label="Hours">${fmt(en.hours)}</td>
+            <td class="mono" data-label="Hours">${fmt(en.hours)}<span class="break-tag">−1h break</span></td>
             <td class="note-cell" data-label="Note"><input type="text" class="edit-input edit-note" value="${en.note ? escapeHtml(en.note) : ''}"></td>
             <td class="row-actions">
               <button class="icon-btn save-btn" data-save-id="${en.id}">Save</button>
@@ -834,7 +870,7 @@
             <td class="mono" data-label="Date">${en.date}</td>
             <td class="mono" data-label="Time In">${fmtTime12(en.timeIn)}</td>
             <td class="mono" data-label="Time Out">${fmtTime12(en.timeOut)}</td>
-            <td class="mono" data-label="Hours">${fmt(en.hours)}</td>
+            <td class="mono" data-label="Hours">${fmt(en.hours)}<span class="break-tag">−1h break</span></td>
             <td class="note-cell" data-label="Note">${en.note ? escapeHtml(en.note) : ''}</td>
             <td class="row-actions">
               <button class="icon-btn" data-edit-id="${en.id}">Edit</button>
