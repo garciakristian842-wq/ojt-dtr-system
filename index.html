@@ -497,9 +497,8 @@
 
   <header>
     <div class="title-block">
-      <div class="eyebrow">Form No. 48 — Trainee Copy</div>
+      <div class="eyebrow"></div>
       <h1>Daily Time Record</h1>
-      <div class="subtitle" id="targetLine">Target: 243.00 hrs</div>
     </div>
     <div class="name-field">
       <label for="traineeName">Name</label>
@@ -573,7 +572,7 @@
             <th>Date</th>
             <th>Time In</th>
             <th>Time Out</th>
-            <th>Hours</th>
+            <th>Hours (−1h break)</th>
             <th>Note</th>
             <th></th>
           </tr>
@@ -586,7 +585,7 @@
     </div>
 
     <div class="footer-actions">
-      <div class="hint">Entries are saved in this browser only.</div>
+      <div class="hint"> 1 hr break is auto-deducted per shift.</div>
       <div style="display:flex; gap:1.2rem;">
         <button class="link-btn" id="exportBtn"></button>
         <button class="link-btn" id="clearBtn" style="color:var(--margin-red);">Clear all entries</button>
@@ -597,7 +596,7 @@
 </div>
 
 <footer class="page-foot">
- Naka local host to bawat device na gamit nyo di matratransfer data oki? wag demanding
+
  
 </footer>
 
@@ -619,7 +618,6 @@
     totalStat: document.getElementById('totalHoursStat'),
     remainingStat: document.getElementById('remainingStat'),
     targetStat: document.getElementById('targetStat'),
-    targetLine: document.getElementById('targetLine'),
     targetInput: document.getElementById('targetInput'),
     pctText: document.getElementById('pctText'),
     ring: document.getElementById('progressRing'),
@@ -629,6 +627,7 @@
   };
 
   const RING_CIRCUMFERENCE = 2 * Math.PI * 72;
+  const BREAK_MINUTES = 60; // automatic 1-hour break deducted from every shift
 
   function load(key, fallback){
     try{
@@ -642,6 +641,9 @@
   }
 
   let entries = load(STORAGE_KEY, []);
+  // recompute hours for older entries so the 1-hr break applies everywhere
+  entries = entries.map(en => ({ ...en, hours: computeHours(en.timeIn, en.timeOut) }));
+  save(STORAGE_KEY, entries);
   let target = load(TARGET_KEY, 243);
   let traineeName = load(NAME_KEY, '');
   let editingId = null;
@@ -672,7 +674,7 @@
     let inMin = timeToMinutes(timeIn);
     let outMin = timeToMinutes(timeOut);
     if(outMin <= inMin) outMin += 24 * 60; // overnight shift
-    let mins = outMin - inMin;
+    let mins = outMin - inMin - BREAK_MINUTES;
     if(mins < 0) mins = 0;
     return mins / 60;
   }
@@ -704,7 +706,7 @@
 
     const hours = computeHours(timeIn, timeOut);
     if(hours <= 0){
-      els.error.textContent = 'Time out must be after time in.';
+      els.error.textContent = 'Shift must be longer than the 1-hr break (time out after time in).';
       return;
     }
 
@@ -747,7 +749,7 @@
     }
     const hours = computeHours(timeIn, timeOut);
     if(hours <= 0){
-      errEl.textContent = 'Time out must be after time in.';
+      errEl.textContent = 'Shift must be longer than the 1-hr break (time out after time in).';
       return;
     }
 
@@ -872,7 +874,6 @@
     els.totalStat.textContent = fmt(total);
     els.remainingStat.textContent = fmt(remaining);
     els.targetStat.textContent = fmt(target);
-    els.targetLine.textContent = `Target: ${fmt(target)} hrs`;
     els.pctText.textContent = `${Math.round(pct * 100)}%`;
 
     const offset = RING_CIRCUMFERENCE * (1 - pct);
