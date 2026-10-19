@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#12161b">
+<title>Daily Time Record</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme:dark;
+    --paper:#12161b;
+    --paper-line:rgba(255,255,255,0.08);
+    --ink:#EDEAE2;
+    --ink-soft:#A9A596;
+    --margin-red:#E8705F;
+    --seal-green:#5FBF7F;
+    --gold:#E0A93B;
+    --card:#1B2128;
+    --danger:#E8705F;
+    --line-strong:rgba(237,234,226,0.28);
+    --row-hover:rgba(255,255,255,0.05);
+    --subtotal-bg:rgba(255,255,255,0.06);
+    --input-bg:#11151A;
+    --input-line:#3B4450;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+    padding:0 0 4rem;
+    position:relative;
+    isolation:isolate;
+  }
+  /* Paper layer: ruled ledger texture + tint, sits over the photo */
+  body::after{
+    content:"";
+    position:fixed;
+    inset:0;
+    background-color:var(--paper);
+    background-image:linear-gradient(var(--paper-line) 1px, transparent 1px);
+    background-size:100% 2.15rem;
+    z-index:-1;
+  }
+  .margin-rule{
+    position:fixed;
+    top:0; bottom:0; left:56px;
+    width:2px;
+    background:rgba(232,112,95,0.4);
+    z-index:0;
+  }
+  @media (max-width:700px){ .margin-rule{ left:28px; } }
+
+  .wrap{
+    max-width:880px;
+    margin:0 auto;
+    padding:2.5rem 2.5rem 0 76px;
+    position:relative;
+    z-index:1;
+  }
+  @media (max-width:700px){ .wrap{ padding:1.75rem 1.25rem 0 44px; } }
+
+  .brand-strip{
+    display:flex;
+    align-items:center;
+    gap:0.7rem;
+    margin-bottom:1.4rem;
+  }
+  .brand-tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.66rem;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:1.5rem;
+    border-bottom:3px double var(--ink);
+    padding-bottom:1.1rem;
+    margin-bottom:1.75rem;
+  }
+  .title-block .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.72rem;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--margin-red);
+    margin-bottom:0.35rem;
+  }
+  h1{
+    font-family:'Zilla Slab', serif;
+    font-weight:700;
+    font-size:clamp(1.5rem, 6vw, 2.1rem);
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .subtitle{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.78rem;
+    color:var(--ink-soft);
+    margin-top:0.3rem;
+  }
+  .name-field{
+    display:flex;
+    flex-direction:column;
+    gap:0.3rem;
+    min-width:0;
+    width:220px;
+    max-width:100%;
+    flex:0 1 220px;
+  }
+  .name-field label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.68rem;
+    text-transform:uppercase;
+    letter-spacing:0.14em;
+    color:var(--ink-soft);
+  }
+  .name-field input{
+    border:none;
+    border-bottom:1.5px solid var(--ink);
+    background:transparent;
+    font-family:'Zilla Slab', serif;
+    font-size:1.1rem;
+    padding:0.15rem 0.1rem;
+    color:var(--ink);
+    width:100%;
+    min-width:0;
+    max-width:100%;
+  }
+  .name-field input:focus{ outline:none; border-bottom-color:var(--margin-red); }
+
+  /* ---- Seal / progress dial ---- */
+  .status-row{
+    display:grid;
+    grid-template-columns:180px 1fr;
+    gap:2rem;
+    align-items:center;
+    margin-bottom:2.25rem;
+  }
+  @media (max-width:680px){
+    .status-row{ grid-template-columns:1fr; justify-items:center; gap:1.5rem; }
+  }
+
+  .seal{ position:relative; width:170px; height:170px; flex-shrink:0; }
+  @media (max-width:680px){ .seal{ width:140px; height:140px; } }
+  .seal svg{ width:100%; height:100%; display:block; }
+  .seal-text{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono', monospace;
+    color:var(--seal-green);
+    text-align:center;
+  }
+  .seal-text .pct{ font-size:clamp(1.4rem, 5vw, 1.9rem); font-weight:600; line-height:1; }
+  .seal-text .lbl{ font-size:0.6rem; letter-spacing:0.14em; text-transform:uppercase; margin-top:0.3rem; color:var(--ink-soft); }
+
+  .stat-cards{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:1px;
+    background:var(--line-strong);
+    border:1px solid var(--line-strong);
+    width:100%;
+  }
+  @media (max-width:680px){
+    .stat-cards{ grid-template-columns:1fr; }
+  }
+  .stat{
+    background:var(--card);
+    padding:0.9rem 1.1rem;
+    min-width:0;
+  }
+  .stat .k{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.66rem;
+    text-transform:uppercase;
+    letter-spacing:0.12em;
+    color:var(--ink-soft);
+    margin-bottom:0.3rem;
+    white-space:nowrap;
+  }
+  .stat .v{
+    font-family:'Zilla Slab', serif;
+    font-size:clamp(1.25rem, 4vw, 1.5rem);
+    font-weight:600;
+  }
+  .stat.remaining .v{ color:var(--margin-red); }
+  .stat.done .v{ color:var(--seal-green); }
+  .target-edit{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.7rem;
+    color:var(--ink-soft);
+    margin-top:0.35rem;
+  }
+  .target-edit input{
+    width:52px;
+    font-family:'IBM Plex Mono', monospace;
+    border:none;
+    border-bottom:1px solid var(--ink-soft);
+    background:transparent;
+    color:var(--ink);
+    font-size:0.7rem;
+  }
+  .target-edit input:focus{ outline:none; border-bottom-color:var(--margin-red); }
+
+  /* ---- Entry form ---- */
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line-strong);
+    padding:1.5rem;
+    margin-bottom:2rem;
+  }
+  @media (max-width:480px){ .panel{ padding:1.1rem; } }
+  .panel h2{
+    font-family:'Zilla Slab', serif;
+    font-size:1rem;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    margin:0 0 1.1rem;
+    display:flex;
+    align-items:center;
+    gap:0.6rem;
+  }
+  .panel h2::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:var(--paper-line);
+  }
+  form.entry-form{
+    display:grid;
+    grid-template-columns:1.2fr 1fr 1fr 1.5fr auto;
+    gap:0.9rem;
+    align-items:end;
+    width:100%;
+    min-width:0;
+  }
+  @media (max-width:760px){ form.entry-form{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:420px){ form.entry-form{ grid-template-columns:1fr; } }
+
+  .field{ display:flex; flex-direction:column; gap:0.35rem; min-width:0; }
+  .field label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.64rem;
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+    color:var(--ink-soft);
+  }
+  .field input, .field select{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.9rem;
+    padding:0.5rem 0.55rem;
+    border:1px solid var(--input-line);
+    background:var(--input-bg);
+    color:var(--ink);
+    width:100%;
+    min-width:0;
+    max-width:100%;
+  }
+  .field input:focus, .field select:focus{ outline:none; border-color:var(--margin-red); }
+
+  button{
+    font-family:'IBM Plex Mono', monospace;
+    cursor:pointer;
+    border:none;
+  }
+  .btn-add{
+    background:var(--ink);
+    color:#12161b;
+    font-weight:600;
+    padding:0.62rem 1.1rem;
+    font-size:0.78rem;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    white-space:nowrap;
+    width:100%;
+  }
+  .btn-add:hover{ background:var(--seal-green); }
+  .form-error{
+    grid-column:1/-1;
+    font-size:0.78rem;
+    color:var(--margin-red);
+    font-family:'IBM Plex Mono', monospace;
+    min-height:1.1em;
+  }
+
+  /* ---- Ledger table ---- */
+  .table-scroll{
+    width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  table{ width:100%; min-width:560px; border-collapse:collapse; }
+  thead th{
+    text-align:left;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.66rem;
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+    color:var(--ink-soft);
+    padding:0 0.6rem 0.6rem;
+    border-bottom:2px solid var(--ink);
+  }
+  tbody td{
+    padding:0.65rem 0.6rem;
+    border-bottom:1px solid var(--paper-line);
+    font-size:0.9rem;
+    vertical-align:middle;
+  }
+  tbody tr:hover{ background:var(--row-hover); }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+  .day-subtotal-row td{
+    background:var(--subtotal-bg);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.74rem;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    padding:0.4rem 0.6rem;
+    border-bottom:1px solid var(--paper-line);
+  }
+  .row-actions{ display:flex; gap:0.5rem; }
+  .icon-btn{
+    background:none;
+    color:var(--ink-soft);
+    font-size:0.72rem;
+    text-decoration:underline;
+    padding:0.15rem 0;
+  }
+  .icon-btn:hover{ color:var(--margin-red); }
+  .icon-btn.save-btn:hover{ color:var(--seal-green); }
+  tr.editing-row{ background:var(--row-hover); }
+  tr.editing-row td{ padding:0.5rem 0.5rem; }
+  .edit-input{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.85rem;
+    padding:0.35rem 0.4rem;
+    border:1px solid var(--margin-red);
+    background:var(--input-bg);
+    color:var(--ink);
+    width:100%;
+    min-width:0;
+    max-width:100%;
+  }
+  .edit-input:focus{ outline:none; }
+  .empty-state{
+    text-align:center;
+    padding:2.5rem 1rem;
+    color:var(--ink-soft);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.85rem;
+  }
+
+  .footer-actions{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:1.25rem;
+    flex-wrap:wrap;
+    gap:0.8rem;
+  }
+  .footer-actions .hint{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.7rem;
+    color:var(--ink-soft);
+  }
+  .link-btn{
+    background:none;
+    color:var(--ink);
+    font-size:0.75rem;
+    text-decoration:underline;
+    padding:0;
+  }
+  .link-btn:hover{ color:var(--margin-red); }
+
+  footer.page-foot{
+    max-width:880px;
+    margin:2.5rem auto 0;
+    padding:1.2rem 2.5rem 0 76px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.7rem;
+    color:var(--ink-soft);
+    border-top:1px solid var(--paper-line);
+  }
+  @media (max-width:700px){ footer.page-foot{ padding:1.2rem 1.25rem 0 44px; } }
+
+  ::placeholder{ color:var(--ink-soft); opacity:0.55; }
+  input, select, button{ -webkit-tap-highlight-color:transparent; }
+  body{ padding-bottom:calc(4rem + env(safe-area-inset-bottom, 0px)); -webkit-text-size-adjust:100%; }
+
+  /* ================= Phone / small-screen layout ================= */
+  @media (max-width:700px){
+    .margin-rule{ left:14px; }
+    .wrap{ padding:1.25rem max(1rem, env(safe-area-inset-right,0px)) 0 max(30px, calc(env(safe-area-inset-left,0px) + 26px)); }
+    footer.page-foot{ padding:1.2rem 1rem 0 30px; }
+    header{ gap:1rem; }
+    .name-field{ width:100%; flex:1 1 100%; }
+    .name-field input{ font-size:16px; padding:0.45rem 0.1rem; }
+    .status-row{ margin-bottom:1.5rem; }
+    .stat{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; padding:0.8rem 1rem; }
+    .stat .k{ margin:0; }
+    .target-edit{ width:100%; margin-top:0.5rem; font-size:0.78rem; }
+    .target-edit input{ width:72px; font-size:16px; padding:0.2rem 0.3rem; border:1px solid var(--input-line); }
+  }
+
+  @media (max-width:640px){
+    .panel{ padding:1rem; margin-bottom:1.5rem; }
+
+    /* entry form: date full width, time in/out side by side */
+    form.entry-form{ grid-template-columns:1fr 1fr; gap:0.8rem; }
+    form.entry-form .field:nth-child(1),
+    form.entry-form .field:nth-child(4),
+    form.entry-form .btn-add{ grid-column:1/-1; }
+    .field input, .field select, .edit-input{ font-size:16px; min-height:44px; }
+    .btn-add{ min-height:48px; font-size:0.85rem; }
+
+    /* ledger table -> stacked cards */
+    .table-scroll{ overflow:visible; }
+    table, tbody{ display:block; min-width:0; width:100%; }
+    thead{ display:none; }
+    tbody tr{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:0.55rem 0.8rem;
+      padding:0.85rem 0.9rem;
+      margin-bottom:0.7rem;
+      border:1px solid var(--line-strong);
+      background:rgba(255,255,255,0.03);
+    }
+    tbody tr:hover{ background:rgba(255,255,255,0.03); }
+    tbody td{ display:block; padding:0; border:none; min-width:0; word-break:break-word; }
+    tbody td[data-label]::before{
+      content:attr(data-label);
+      display:block;
+      font-family:'IBM Plex Mono', monospace;
+      font-size:0.6rem;
+      letter-spacing:0.1em;
+      text-transform:uppercase;
+      color:var(--ink-soft);
+      margin-bottom:0.15rem;
+    }
+    tbody td.note-cell{ grid-column:1/-1; }
+    tbody td.note-cell:empty{ display:none; }
+    tbody td.row-actions{
+      grid-column:1/-1;
+      display:flex;
+      gap:0.5rem;
+      padding-top:0.6rem;
+      margin-top:0.1rem;
+      border-top:1px solid var(--paper-line);
+    }
+    .icon-btn{
+      flex:1;
+      min-height:42px;
+      border:1px solid var(--input-line);
+      text-decoration:none;
+      font-size:0.8rem;
+      color:var(--ink);
+    }
+    tr.editing-row td{ padding:0; }
+    tbody tr.day-subtotal-row{
+      display:block;
+      margin:-0.35rem 0 1rem;
+      padding:0.5rem 0.9rem;
+      background:var(--subtotal-bg);
+      border:none;
+    }
+    tbody tr.day-subtotal-row td{ padding:0; font-size:0.72rem; background:none; }
+    tbody tr.err-row{ display:block; padding:0; margin:-0.5rem 0 0.7rem; border:none; background:none; }
+    tbody tr.err-row:has(.row-edit-error:empty){ display:none; }
+    tbody tr.err-row td{ padding:0 !important; border:none !important; }
+
+    .footer-actions{ flex-direction:column; align-items:flex-start; }
+    .footer-actions > div:last-child{ width:100%; justify-content:space-between; }
+    .link-btn{ min-height:40px; font-size:0.82rem; }
+  }
+</style>
+</head>
+<body>
+<div class="margin-rule"></div>
+<div class="wrap">
+
+  <div class="brand-strip">
+    <div class="brand-tag">OJT / Practicum Trainee Portal</div>
+  </div>
+
+  <header>
+    <div class="title-block">
+      <div class="eyebrow">Form No. 48 — Trainee Copy</div>
+      <h1>Daily Time Record</h1>
+      <div class="subtitle" id="targetLine">Target: 243.00 hrs</div>
+    </div>
+    <div class="name-field">
+      <label for="traineeName">Name</label>
+      <input type="text" id="traineeName" placeholder="Your full name">
+    </div>
+  </header>
+
+  <div class="status-row">
+    <div class="seal">
+      <svg viewBox="0 0 170 170">
+        <circle cx="85" cy="85" r="72" fill="none" stroke="#2A323C" stroke-width="10"/>
+        <circle id="progressRing" cx="85" cy="85" r="72" fill="none" stroke="#5FBF7F" stroke-width="10"
+                stroke-linecap="round" stroke-dasharray="452.4" stroke-dashoffset="452.4"
+                transform="rotate(-90 85 85)"/>
+      </svg>
+      <div class="seal-text">
+        <div class="pct" id="pctText">0%</div>
+        <div class="lbl">Rendered</div>
+      </div>
+    </div>
+
+    <div class="stat-cards">
+      <div class="stat done">
+        <div class="k">Hours Rendered</div>
+        <div class="v" id="totalHoursStat">0.00</div>
+      </div>
+      <div class="stat remaining">
+        <div class="k">Hours Remaining</div>
+        <div class="v" id="remainingStat">243.00</div>
+      </div>
+      <div class="stat">
+        <div class="k">Target</div>
+        <div class="v" id="targetStat">243.00</div>
+        <div class="target-edit">
+          adjust: <input type="number" id="targetInput" value="243" min="1" step="0.5">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Log a Shift</h2>
+    <form class="entry-form" id="entryForm">
+      <div class="field">
+        <label for="dateInput">Date</label>
+        <input type="date" id="dateInput" required>
+      </div>
+      <div class="field">
+        <label for="timeInInput">Time In</label>
+        <input type="time" id="timeInInput" required>
+      </div>
+      <div class="field">
+        <label for="timeOutInput">Time Out</label>
+        <input type="time" id="timeOutInput" required>
+      </div>
+      <div class="field">
+        <label for="noteInput">Note (optional)</label>
+        <input type="text" id="noteInput" placeholder="e.g. Morning shift">
+      </div>
+      <button type="submit" class="btn-add">Add Entry</button>
+      <div class="form-error" id="formError"></div>
+    </form>
+  </div>
+
+  <div class="panel">
+    <h2>Ledger</h2>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Time In</th>
+            <th>Time Out</th>
+            <th>Hours</th>
+            <th>Note</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="ledgerBody"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="emptyState" style="display:none;">
+      No entries yet. Log your first shift above.
+    </div>
+
+    <div class="footer-actions">
+      <div class="hint">Entries are saved in this browser only.</div>
+      <div style="display:flex; gap:1.2rem;">
+        <button class="link-btn" id="exportBtn"></button>
+        <button class="link-btn" id="clearBtn" style="color:var(--margin-red);">Clear all entries</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer class="page-foot">
+ Naka local host to bawat device na gamit nyo di matratransfer data oki? wag demanding
+ 
+</footer>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'dtr_entries_v1';
+  const TARGET_KEY = 'dtr_target_v1';
+  const NAME_KEY = 'dtr_name_v1';
+
+  const els = {
+    form: document.getElementById('entryForm'),
+    date: document.getElementById('dateInput'),
+    timeIn: document.getElementById('timeInInput'),
+    timeOut: document.getElementById('timeOutInput'),
+    note: document.getElementById('noteInput'),
+    error: document.getElementById('formError'),
+    body: document.getElementById('ledgerBody'),
+    empty: document.getElementById('emptyState'),
+    totalStat: document.getElementById('totalHoursStat'),
+    remainingStat: document.getElementById('remainingStat'),
+    targetStat: document.getElementById('targetStat'),
+    targetLine: document.getElementById('targetLine'),
+    targetInput: document.getElementById('targetInput'),
+    pctText: document.getElementById('pctText'),
+    ring: document.getElementById('progressRing'),
+    exportBtn: document.getElementById('exportBtn'),
+    clearBtn: document.getElementById('clearBtn'),
+    name: document.getElementById('traineeName'),
+  };
+
+  const RING_CIRCUMFERENCE = 2 * Math.PI * 72;
+
+  function load(key, fallback){
+    try{
+      const raw = localStorage.getItem(key);
+      if(raw === null) return fallback;
+      return JSON.parse(raw);
+    }catch(e){ return fallback; }
+  }
+  function save(key, value){
+    try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){}
+  }
+
+  let entries = load(STORAGE_KEY, []);
+  let target = load(TARGET_KEY, 243);
+  let traineeName = load(NAME_KEY, '');
+  let editingId = null;
+
+  els.targetInput.value = target;
+  els.name.value = traineeName;
+  els.date.value = new Date().toISOString().slice(0,10);
+
+  els.name.addEventListener('input', () => {
+    traineeName = els.name.value;
+    save(NAME_KEY, traineeName);
+  });
+
+  els.targetInput.addEventListener('change', () => {
+    const v = parseFloat(els.targetInput.value);
+    target = (isFinite(v) && v > 0) ? v : 243;
+    els.targetInput.value = target;
+    save(TARGET_KEY, target);
+    render();
+  });
+
+  function timeToMinutes(t){
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  function computeHours(timeIn, timeOut){
+    let inMin = timeToMinutes(timeIn);
+    let outMin = timeToMinutes(timeOut);
+    if(outMin <= inMin) outMin += 24 * 60; // overnight shift
+    let mins = outMin - inMin;
+    if(mins < 0) mins = 0;
+    return mins / 60;
+  }
+
+  function fmt(n){ return n.toFixed(2); }
+
+  function fmtTime12(t){
+    const [h, m] = t.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    let h12 = h % 12; if(h12 === 0) h12 = 12;
+    return `${h12}:${String(m).padStart(2,'0')} ${period}`;
+  }
+
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  els.form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    els.error.textContent = '';
+
+    const date = els.date.value;
+    const timeIn = els.timeIn.value;
+    const timeOut = els.timeOut.value;
+    const note = els.note.value.trim();
+
+    if(!date || !timeIn || !timeOut){
+      els.error.textContent = 'Please fill in date, time in, and time out.';
+      return;
+    }
+
+    const hours = computeHours(timeIn, timeOut);
+    if(hours <= 0){
+      els.error.textContent = 'Time out must be after time in.';
+      return;
+    }
+
+    entries.push({ id: uid(), date, timeIn, timeOut, note, hours });
+    save(STORAGE_KEY, entries);
+
+    els.timeIn.value = '';
+    els.timeOut.value = '';
+    els.note.value = '';
+
+    render();
+  });
+
+  function deleteEntry(id){
+    entries = entries.filter(en => en.id !== id);
+    save(STORAGE_KEY, entries);
+    render();
+  }
+
+  function startEdit(id){
+    editingId = id;
+    render();
+  }
+
+  function cancelEdit(){
+    editingId = null;
+    render();
+  }
+
+  function saveEdit(id, tr){
+    const date = tr.querySelector('.edit-date').value;
+    const timeIn = tr.querySelector('.edit-timein').value;
+    const timeOut = tr.querySelector('.edit-timeout').value;
+    const note = tr.querySelector('.edit-note').value.trim();
+    const errEl = tr.querySelector('.row-edit-error');
+
+    if(!date || !timeIn || !timeOut){
+      errEl.textContent = 'Date, time in, and time out are required.';
+      return;
+    }
+    const hours = computeHours(timeIn, timeOut);
+    if(hours <= 0){
+      errEl.textContent = 'Time out must be after time in.';
+      return;
+    }
+
+    entries = entries.map(en => en.id === id ? { ...en, date, timeIn, timeOut, note, hours } : en);
+    save(STORAGE_KEY, entries);
+    editingId = null;
+    render();
+  }
+
+  els.clearBtn.addEventListener('click', () => {
+    if(entries.length === 0) return;
+    if(confirm('Clear all logged entries? This cannot be undone.')){
+      entries = [];
+      save(STORAGE_KEY, entries);
+      render();
+    }
+  });
+
+  els.exportBtn.addEventListener('click', () => {
+    if(entries.length === 0) return;
+    const rows = [['Date','Time In','Time Out','Hours','Note']];
+    [...entries].sort((a,b) => a.date.localeCompare(b.date)).forEach(en => {
+      rows.push([en.date, en.timeIn, en.timeOut, fmt(en.hours), en.note || '']);
+    });
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'dtr_export.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  function render(){
+    const sorted = [...entries].sort((a,b) => {
+      if(a.date !== b.date) return a.date.localeCompare(b.date);
+      return a.timeIn.localeCompare(b.timeIn);
+    });
+
+    els.body.innerHTML = '';
+    els.empty.style.display = sorted.length === 0 ? 'block' : 'none';
+
+    let lastDate = null;
+    let dayTotal = 0;
+    const groups = [];
+    sorted.forEach(en => {
+      if(en.date !== lastDate){
+        if(lastDate !== null) groups.push({ type:'subtotal', date:lastDate, total:dayTotal });
+        lastDate = en.date;
+        dayTotal = 0;
+      }
+      groups.push({ type:'entry', data: en });
+      dayTotal += en.hours;
+    });
+    if(lastDate !== null) groups.push({ type:'subtotal', date:lastDate, total:dayTotal });
+
+    groups.forEach(g => {
+      if(g.type === 'entry'){
+        const en = g.data;
+        const tr = document.createElement('tr');
+        if(en.id === editingId){
+          tr.className = 'editing-row';
+          tr.innerHTML = `
+            <td data-label="Date"><input type="date" class="edit-input edit-date" value="${en.date}"></td>
+            <td data-label="Time In"><input type="time" class="edit-input edit-timein" value="${en.timeIn}"></td>
+            <td data-label="Time Out"><input type="time" class="edit-input edit-timeout" value="${en.timeOut}"></td>
+            <td class="mono" data-label="Hours">${fmt(en.hours)}</td>
+            <td class="note-cell" data-label="Note"><input type="text" class="edit-input edit-note" value="${en.note ? escapeHtml(en.note) : ''}"></td>
+            <td class="row-actions">
+              <button class="icon-btn save-btn" data-save-id="${en.id}">Save</button>
+              <button class="icon-btn" data-cancel-id="${en.id}">Cancel</button>
+            </td>
+          `;
+          els.body.appendChild(tr);
+          const errRow = document.createElement('tr');
+          errRow.className = 'err-row';
+          errRow.innerHTML = `<td colspan="6" class="row-edit-error" style="color:var(--margin-red); font-family:'IBM Plex Mono', monospace; font-size:0.72rem; padding-top:0; border-bottom:1px solid var(--paper-line);"></td>`;
+          els.body.appendChild(errRow);
+        } else {
+          tr.innerHTML = `
+            <td class="mono" data-label="Date">${en.date}</td>
+            <td class="mono" data-label="Time In">${fmtTime12(en.timeIn)}</td>
+            <td class="mono" data-label="Time Out">${fmtTime12(en.timeOut)}</td>
+            <td class="mono" data-label="Hours">${fmt(en.hours)}</td>
+            <td class="note-cell" data-label="Note">${en.note ? escapeHtml(en.note) : ''}</td>
+            <td class="row-actions">
+              <button class="icon-btn" data-edit-id="${en.id}">Edit</button>
+              <button class="icon-btn" data-id="${en.id}">Delete</button>
+            </td>
+          `;
+          els.body.appendChild(tr);
+        }
+      } else {
+        const tr = document.createElement('tr');
+        tr.className = 'day-subtotal-row';
+        tr.innerHTML = `<td colspan="6">Subtotal for ${g.date} — ${fmt(g.total)} hrs</td>`;
+        els.body.appendChild(tr);
+      }
+    });
+
+    els.body.querySelectorAll('.icon-btn[data-id]').forEach(btn => {
+      btn.addEventListener('click', () => deleteEntry(btn.getAttribute('data-id')));
+    });
+    els.body.querySelectorAll('.icon-btn[data-edit-id]').forEach(btn => {
+      btn.addEventListener('click', () => startEdit(btn.getAttribute('data-edit-id')));
+    });
+    els.body.querySelectorAll('.icon-btn[data-cancel-id]').forEach(btn => {
+      btn.addEventListener('click', cancelEdit);
+    });
+    els.body.querySelectorAll('.icon-btn[data-save-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-save-id');
+        saveEdit(id, btn.closest('tr'));
+      });
+    });
+
+    const total = entries.reduce((sum, en) => sum + en.hours, 0);
+    const remaining = Math.max(target - total, 0);
+    const pct = target > 0 ? Math.min(total / target, 1) : 0;
+
+    els.totalStat.textContent = fmt(total);
+    els.remainingStat.textContent = fmt(remaining);
+    els.targetStat.textContent = fmt(target);
+    els.targetLine.textContent = `Target: ${fmt(target)} hrs`;
+    els.pctText.textContent = `${Math.round(pct * 100)}%`;
+
+    const offset = RING_CIRCUMFERENCE * (1 - pct);
+    els.ring.setAttribute('stroke-dasharray', RING_CIRCUMFERENCE.toFixed(1));
+    els.ring.setAttribute('stroke-dashoffset', offset.toFixed(1));
+    els.ring.setAttribute('stroke', pct >= 1 ? '#E0A93B' : '#5FBF7F');
+  }
+
+  function escapeHtml(str){
+    return str.replace(/[&<>"']/g, m => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[m]));
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
